@@ -523,6 +523,13 @@
                                         {% endif %}
                                     {% endif %}
                                     {% endif %}
+
+                                    {% if not current_user.is_anonymous %}
+                                        <button id="sendToDropboxBtn" type="button" class="btn btn-primary action-icon-btn" data-book-id="{{ entry.id }}" title="{{ _('Send to Dropbox') }}" aria-label="{{ _('Send to Dropbox') }}">
+                                            <span class="glyphicon glyphicon-cloud-upload"></span>
+                                        </button>
+                                    {% endif %}
+
                                     {% if entry.reader_list and current_user.role_viewer() %}
                                         <a target="_blank"
                                            href="{{ url_for('web.read_book', book_id=entry.id, book_format=entry.reader_list[0]) }}"

@@ -212,4 +212,33 @@ $(document).ready(function() {
         var checkedCheckboxes = $('input[name="selected_emails"]:checked').length;
         $('#selectAllEmails').prop('checked', totalCheckboxes === checkedCheckboxes);
     });
+
+    // Handle Send to Dropbox button
+    $('#sendToDropboxBtn').click(function(e) {
+        e.preventDefault();
+        var $btn = $(this);
+        var bookId = $btn.data('book-id');
+
+        $btn.prop('disabled', true);
+
+        $.ajax({
+            url: getPath() + '/send_to_dropbox/' + bookId,
+            method: 'POST',
+            data: { 'csrf_token': $('input[name="csrf_token"]').val() },
+            success: function(response) {
+                if (response.length > 0) {
+                    var messageType = response[0].type === 'success' ? 'success' : 'error';
+                    showPageFlashMessage(response[0].message, messageType);
+                } else {
+                    showPageFlashMessage('Unknown error occurred', 'error');
+                }
+            },
+            error: function() {
+                showPageFlashMessage('Error sending to Dropbox', 'error');
+            },
+            complete: function() {
+                $btn.prop('disabled', false);
+            }
+        });
+    });
 });

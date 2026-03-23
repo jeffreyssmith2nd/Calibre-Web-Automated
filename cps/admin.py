@@ -1762,6 +1762,42 @@ def update_mailsettings():
     return edit_mailsettings()
 
 
+@admi.route("/admin/dropboxsettings", methods=["GET"])
+@user_login_required
+@admin_required
+def edit_dropboxsettings():
+    content = {
+        'dropbox_app_key': config.dropbox_app_key,
+        'dropbox_upload_path': config.dropbox_upload_path,
+        'dropbox_app_secret_set': bool(config.dropbox_app_secret_e),
+        'dropbox_refresh_token_set': bool(config.dropbox_refresh_token_e),
+    }
+    return render_title_template("dropbox_edit.html", content=content, title=_("Edit Dropbox Settings"),
+                                 page="dropboxset")
+
+
+@admi.route("/admin/dropboxsettings", methods=["POST"])
+@user_login_required
+@admin_required
+def update_dropboxsettings():
+    to_save = request.form.to_dict()
+    _config_string(to_save, "dropbox_app_key")
+    _config_string(to_save, "dropbox_upload_path")
+    if to_save.get("dropbox_app_secret_e", ""):
+        _config_string(to_save, "dropbox_app_secret_e")
+    if to_save.get("dropbox_refresh_token_e", ""):
+        _config_string(to_save, "dropbox_refresh_token_e")
+    try:
+        config.save()
+    except (OperationalError, InvalidRequestError) as e:
+        ub.session.rollback()
+        log.error_or_exception("Settings Database error: {}".format(e))
+        flash(_("Oops! Database Error: %(error)s.", error=e.orig), category="error")
+        return edit_dropboxsettings()
+    flash(_("Dropbox Settings updated"), category="success")
+    return edit_dropboxsettings()
+
+
 @admi.route("/admin/scheduledtasks")
 @user_login_required
 @admin_required

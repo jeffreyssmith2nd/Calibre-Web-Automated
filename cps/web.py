@@ -2050,6 +2050,80 @@ def send_to_selected_ereaders(book_id):
     return Response(json.dumps(response), mimetype='application/json')
 
 
+@web.route('/send_to_dropbox/<int:book_id>', methods=["POST"])
+@login_required_if_no_ano
+@download_required
+def send_to_dropbox(book_id):
+    if not config.dropbox_app_key or not config.dropbox_app_secret_e or not config.dropbox_refresh_token_e:
+        return Response(json.dumps([{'type': 'danger',
+                                     'message': _("Please configure Dropbox settings in the admin panel first.")}]),
+                        mimetype='application/json')
+
+    book = calibre_db.get_filtered_book(book_id, allow_show_archived=True)
+    if not book:
+        return Response(json.dumps([{'type': 'danger', 'message': _("Book not found.")}]),
+                        mimetype='application/json')
+
+    # Pick the best available format: EPUB > PDF > MOBI > AZW3 > first available
+    format_priority = ['epub', 'pdf', 'mobi', 'azw3', 'azw']
+    data = None
+    chosen_format = None
+    for fmt in format_priority:
+        data = calibre_db.get_book_format(book.id, fmt.upper())
+        if data:
+            chosen_format = fmt
+            break
+    if not data:
+        if book.data:
+            data = book.data[0]
+            chosen_format = data.format.lower()
+        else:
+            return Response(json.dumps([{'type': 'danger', 'message': _("No downloadable format found for this book.")}]),
+                            mimetype='application/json')
+
+    file_path = os.path.join(config.get_book_path(), book.path, data.name + '.' + chosen_format)
+    if not os.path.isfile(file_path):
+        return Response(json.dumps([{'type': 'danger', 'message': _("Book file not found on disk.")}]),
+                        mimetype='application/json')
+
+    # The Dropbox files_upload API has a hard limit of 150 MB per request.
+    # Files larger than this require a multi-part upload session
+    # (files_upload_session_start / files_upload_session_append /
+    # files_upload_session_finish), which is not currently implemented.
+    # Until chunked upload support is added, reject files that exceed this limit.
+    DROPBOX_UPLOAD_LIMIT = 150 * 1024 * 1024  # 150 MB in bytes
+    if os.path.getsize(file_path) > DROPBOX_UPLOAD_LIMIT:
+        return Response(json.dumps([{'type': 'danger',
+                                     'message': _("File exceeds the 150 MB Dropbox upload limit and cannot be sent.")}]),
+                        mimetype='application/json')
+
+    upload_filename = data.name + '.' + chosen_format
+    dropbox_dest = config.dropbox_upload_path.rstrip('/') + '/' + upload_filename
+
+    try:
+        import dropbox as dropbox_sdk
+        dbx = dropbox_sdk.Dropbox(
+            oauth2_refresh_token=config.dropbox_refresh_token_e,
+            app_key=config.dropbox_app_key,
+            app_secret=config.dropbox_app_secret_e,
+        )
+        with open(file_path, 'rb') as f:
+            dbx.files_upload(
+                f.read(),
+                dropbox_dest,
+                mode=dropbox_sdk.files.WriteMode.overwrite,
+            )
+    except Exception as ex:
+        log.error("Dropbox upload failed: %s", ex)
+        return Response(json.dumps([{'type': 'danger',
+                                     'message': _("Dropbox upload failed: %(error)s", error=str(ex))}]),
+                        mimetype='application/json')
+
+    return Response(json.dumps([{'type': 'success',
+                                 'message': _("'%(title)s' successfully sent to Dropbox.", title=book.title)}]),
+                    mimetype='application/json')
+
+
 # ################################### Login Logout ##################################################################
 
 @web.route('/register', methods=['POST'])

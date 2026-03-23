@@ -58,6 +58,11 @@ class _Settings(_Base):
     mail_server_type = Column(SmallInteger, default=0)
     mail_gmail_token = Column(JSON, default={})
 
+    dropbox_app_key = Column(String, default='')
+    dropbox_app_secret_e = Column(String)
+    dropbox_refresh_token_e = Column(String)
+    dropbox_upload_path = Column(String, default='/Books')
+
     config_calibre_dir = Column(String)
     config_calibre_uuid = Column(String)
     config_calibre_split = Column(Boolean, default=False)

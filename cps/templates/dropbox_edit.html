@@ -1,0 +1,36 @@
+{% extends "layout.html" %}
+{% block body %}
+<div class="discover">
+  <h1>{{title}}</h1>
+  <form role="form" class="col-md-10 col-lg-6" method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-group">
+      <label for="dropbox_app_key">{{_('App Key')}}</label>
+      <input type="text" class="form-control" name="dropbox_app_key" id="dropbox_app_key" value="{{content.dropbox_app_key or ''}}">
+    </div>
+    <div class="form-group">
+      <label for="dropbox_app_secret_e">{{_('App Secret')}}</label>
+      {% if content.dropbox_app_secret_set %}
+      <span class="label label-success" style="margin-left:6px">{{_('Currently set')}}</span>
+      {% endif %}
+      <input type="password" class="form-control" name="dropbox_app_secret_e" id="dropbox_app_secret_e" value="">
+      <p class="help-block">{{_('Leave blank to keep the current secret.')}}</p>
+    </div>
+    <div class="form-group">
+      <label for="dropbox_refresh_token_e">{{_('Refresh Token')}}</label>
+      {% if content.dropbox_refresh_token_set %}
+      <span class="label label-success" style="margin-left:6px">{{_('Currently set')}}</span>
+      {% endif %}
+      <input type="password" class="form-control" name="dropbox_refresh_token_e" id="dropbox_refresh_token_e" value="">
+      <p class="help-block">{{_('Leave blank to keep the current token.')}}</p>
+    </div>
+    <div class="form-group">
+      <label for="dropbox_upload_path">{{_('Upload Path')}}</label>
+      <input type="text" class="form-control" name="dropbox_upload_path" id="dropbox_upload_path" value="{{content.dropbox_upload_path or '/Books'}}">
+      <p class="help-block">{{_('Dropbox folder path where books will be uploaded, e.g. /Books')}}</p>
+    </div>
+    <button type="submit" name="submit" value="submit" class="btn btn-default">{{_('Save')}}</button>
+    <a href="{{ url_for('admin.admin') }}" class="btn btn-default">{{_('Back')}}</a>
+  </form>
+</div>
+{% endblock %}
